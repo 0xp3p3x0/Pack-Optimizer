@@ -67,7 +67,7 @@ export async function optimizePacks(quantity: number): Promise<OptimizationResul
 // Get pack sizes configuration
 export async function getPackSizes(): Promise<{ packSizes: number[]; message: string }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/pakcages`, {
+    const response = await fetch(`${API_BASE_URL}/packages`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
