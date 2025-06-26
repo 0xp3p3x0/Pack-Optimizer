@@ -67,7 +67,7 @@ export async function optimizePacks(quantity: number): Promise<OptimizationResul
 // Get pack sizes configuration
 export async function getPackSizes(): Promise<{ packSizes: number[]; message: string }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/config`, {
+    const response = await fetch(`${API_BASE_URL}/configPackages`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -84,5 +84,37 @@ export async function getPackSizes(): Promise<{ packSizes: number[]; message: st
       throw error
     }
     throw new ApiError("Failed to connect to Go API server")
+  }
+}
+
+// Set pack sizes configuration
+export async function setPackSizes(packSizes: number[]): Promise<boolean> {
+  // Check if all package sizes are unique before sending to backend
+  const uniquePackSizes = Array.from(new Set(packSizes));  // Removes duplicates
+  if (uniquePackSizes.length !== packSizes.length) {
+    throw new ApiError("All package sizes must be unique.");
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/configPackages`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ packSizes }), // Sending the pack sizes in the request body
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new ApiError(`API Error: ${errorText}`, response.status);
+    }
+
+    // If the request was successful, return true
+    return true;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError("Failed to connect to Go API server.");
   }
 }

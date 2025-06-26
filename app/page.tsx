@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Package, Calculator, AlertCircle } from "lucide-react"
-import { optimizePacks, checkApiHealth, getPackSizes, type OptimizationResult, ApiError } from "@/lib/api"
+import { optimizePacks, checkApiHealth, getPackSizes, setPackSizes, type OptimizationResult, ApiError } from "@/lib/api"
 
 export default function PackOptimizer() {
   const [orderQuantity, setOrderQuantity] = useState("")
@@ -15,7 +15,9 @@ export default function PackOptimizer() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [apiHealthy, setApiHealthy] = useState<boolean | null>(null)
-  const [packSizes, setPackSizes] = useState<number[]>([250, 500, 1000, 2000, 5000])
+  const [newPackSize, setNewPackSize] = useState("")
+  const [updateError, setUpdateError] = useState("")
+  const [packSizes, setPackSize] = useState<number[]>([250, 500, 1000, 2000, 5000])
 
   // Check API health on component mount
   useEffect(() => {
@@ -26,7 +28,7 @@ export default function PackOptimizer() {
       if (healthy) {
         try {
           const config = await getPackSizes()
-          setPackSizes(config.packSizes)
+          setPackSize(config.packSizes)
         } catch (error) {
           console.warn("Failed to get pack sizes configuration")
         }
@@ -58,6 +60,33 @@ export default function PackOptimizer() {
       setLoading(false)
     }
   }
+
+  const handleSetPackSizes = async () => {
+    const sizes = newPackSize.split(",").map((size) => parseInt(size.trim())).filter((size) => !isNaN(size))
+    if (sizes.length === 0) {
+      setUpdateError("Please enter valid pack sizes")
+      return
+    }
+
+    setUpdateError("")
+    setLoading(true)
+
+    try {
+      await setPackSizes(sizes) // Update the pack sizes state
+      setPackSize(sizes)
+      console.log("Pack sizes updated:", sizes)     
+      setNewPackSize("") // Clear input after success
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setUpdateError(err.message)
+      } else {
+        setUpdateError("Failed to update pack sizes.")
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
 
   const examples = [
     { order: 1, description: "Single item" },
@@ -135,6 +164,42 @@ export default function PackOptimizer() {
               ))}
             </div>
           </CardContent>
+           <CardHeader>
+            <CardTitle>Set Pack Sizes</CardTitle>
+            <CardDescription>Customize the available pack sizes for your orders</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                placeholder="Enter pack sizes (comma-separated)"
+                value={newPackSize}
+                onChange={(e) => setNewPackSize(e.target.value)}
+                disabled={!apiHealthy || loading}
+              />
+              <Button onClick={handleSetPackSizes} disabled={loading || !apiHealthy}>
+                {loading ? "Saving..." : "Save Pack Sizes"}
+              </Button>
+            </div>
+
+            {updateError && (
+              <Alert className="border-red-200 bg-red-50">
+                <AlertDescription className="text-red-800">{updateError}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Show the current pack sizes */}
+            <div className="mt-4">
+              <h3 className="font-semibold">Current Pack Sizes:</h3>
+              <div className="flex flex-wrap gap-2">
+                {packSizes.map((size) => (
+                  <Badge key={size} variant="secondary" className="text-sm">
+                    {size.toLocaleString()}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </CardContent>
         </Card>
 
         {result && (
@@ -187,6 +252,7 @@ export default function PackOptimizer() {
             </CardContent>
           </Card>
         )}
+
       </div>
     </div>
   )

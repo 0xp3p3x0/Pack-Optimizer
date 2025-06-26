@@ -25,7 +25,7 @@ type OptimizationResult struct {
 	Waste         int          `json:"waste"`
 }
 
-// Configuration for pack sizes (configurable without code changes)
+// Configuration for pack sizes
 var PackSizes = []int{250, 500, 1000, 2000, 5000}
 
 // CORS middleware
@@ -157,30 +157,6 @@ func optimizeHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result)
 }
 
-// HTTP handler for getting pack sizes configuration
-func configHandler(w http.ResponseWriter, r *http.Request) {
-	enableCORS(w, r)
-	if r.Method == "OPTIONS" {
-		return
-	}
-
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	response := struct {
-		PackSizes []int  `json:"packSizes"`
-		Message   string `json:"message"`
-	}{
-		PackSizes: PackSizes,
-		Message:   "Pack Optimizer API - Available pack sizes",
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
 // Health check endpoint
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	enableCORS(w, r)
@@ -200,10 +176,75 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+func configPackages(w http.ResponseWriter, r *http.Request) {
+
+	enableCORS(w, r)
+
+	if r.Method == http.MethodPost {
+		var request struct {
+			PackSizes []int `json:"packSizes"`
+		}
+
+
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+
+
+		for _, size := range request.PackSizes {
+			if size <= 0 {
+				http.Error(w, "All pack sizes must be positive integers", http.StatusBadRequest)
+				return
+			}
+		}
+
+		uniquePackSizes := make(map[int]struct{})
+		// Check for uniqueness
+		for _, size := range request.PackSizes {
+			if _, exists := uniquePackSizes[size]; exists {
+				http.Error(w, "All package sizes must be unique", http.StatusBadRequest)
+				return
+			}
+			uniquePackSizes[size] = struct{}{}
+		}
+
+		PackSizes = request.PackSizes
+
+		response := struct {
+			Message string `json:"message"`
+		}{
+			Message: "Pack sizes updated successfully",
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Handle GET to retrieve current pack sizes
+	if r.Method == http.MethodGet {
+		response := struct {
+			PackSizes []int  `json:"packSizes"`
+			Message   string `json:"message"`
+		}{
+			PackSizes: PackSizes,
+			Message:   "Current pack sizes configuration",
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+}
+
+
 func main() {
 	http.HandleFunc("/optimize", optimizeHandler)
-	http.HandleFunc("/config", configHandler)
 	http.HandleFunc("/health", healthHandler)
+	http.HandleFunc("/configPackages", configPackages)
 
 	port := "8080"
 	if p := os.Getenv("PORT"); p != "" {
@@ -213,8 +254,11 @@ func main() {
 	fmt.Printf("🚀 Pack Optimizer API server starting on port %s\n", port)
 	fmt.Println("📋 Available endpoints:")
 	fmt.Println("  POST /optimize - Optimize pack combinations")
-	fmt.Println("  GET /config - Get pack sizes configuration")
+	fmt.Println("  GET /configPackages - Get pack sizes configuration")
+	fmt.Println("  POST /configPackages - Update pack sizes configuration")
 	fmt.Println("  GET /health - Health check")
+
+
 	fmt.Printf("🌐 Server URL: http://localhost:%s\n", port)
 
 	log.Fatal(http.ListenAndServe(":"+port, nil))
