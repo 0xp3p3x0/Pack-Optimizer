@@ -96,7 +96,7 @@ export async function setPackSizes(packSizes: number[]): Promise<boolean> {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/configPackages`, {
+    const response = await fetch(`${API_BASE_URL}/packages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -36,7 +36,8 @@ A full-stack application that calculates optimal pack combinations to fulfill or
 ## 📡 API Endpoints
 
 - `POST /optimize` - Calculate optimal pack combinations
-- `GET /config` - Get current pack sizes configuration
+- `GET /package` - Get current pack sizes configuration
+- `POST /package` - Set current pack sizes configuration
 - `GET /health` - Health check endpoint
 
 ## 🧪 Testing

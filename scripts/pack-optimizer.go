@@ -176,21 +176,17 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func configPackages(w http.ResponseWriter, r *http.Request) {
-
+func packageHandler(w http.ResponseWriter, r *http.Request) {
 	enableCORS(w, r)
-
 	if r.Method == http.MethodPost {
 		var request struct {
 			PackSizes []int `json:"packSizes"`
 		}
 
-
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 			http.Error(w, "Invalid JSON", http.StatusBadRequest)
 			return
 		}
-
 
 		for _, size := range request.PackSizes {
 			if size <= 0 {
@@ -244,7 +240,7 @@ func configPackages(w http.ResponseWriter, r *http.Request) {
 func main() {
 	http.HandleFunc("/optimize", optimizeHandler)
 	http.HandleFunc("/health", healthHandler)
-	http.HandleFunc("/configPackages", configPackages)
+	http.HandleFunc("/packages", packageHandler)
 
 	port := "8080"
 	if p := os.Getenv("PORT"); p != "" {
@@ -254,8 +250,8 @@ func main() {
 	fmt.Printf("🚀 Pack Optimizer API server starting on port %s\n", port)
 	fmt.Println("📋 Available endpoints:")
 	fmt.Println("  POST /optimize - Optimize pack combinations")
-	fmt.Println("  GET /configPackages - Get pack sizes configuration")
-	fmt.Println("  POST /configPackages - Update pack sizes configuration")
+	fmt.Println("  GET /packages - Get pack sizes configuration")
+	fmt.Println("  POST /packages - Update pack sizes configuration")
 	fmt.Println("  GET /health - Health check")
 
 
